@@ -50,14 +50,61 @@ export interface TenantMemberInsert {
 }
 export type TenantMembershipInsert = TenantMemberInsert
 
+export type ProductKind = 'part' | 'labor' | 'service'
+
+export interface ProductRow {
+  id: string
+  tenant_id: string
+  code: number
+  name: string
+  group_name: string | null
+  kind: ProductKind
+  unit: string
+  cost_price: number
+  sell_price: number
+  stock_current: number
+  stock_min: number
+  ncm: string | null
+  active: boolean
+  created_at: string
+  updated_at: string
+}
+export type Product = ProductRow
+export interface ProductInsert {
+  id?: string
+  tenant_id: string
+  code: number
+  name: string
+  group_name?: string | null
+  kind?: ProductKind
+  unit?: string
+  cost_price?: number
+  sell_price?: number
+  stock_current?: number
+  stock_min?: number
+  ncm?: string | null
+  active?: boolean
+  created_at?: string
+  updated_at?: string
+}
+
 export interface CustomerRow {
   id: string
   tenant_id: string
   name: string
+  fantasy_name?: string | null
+  person_type?: 'physical' | 'legal'
   document: string | null
   phone: string | null
   email: string | null
   address: string | null
+  cep?: string | null
+  number?: string | null
+  complement?: string | null
+  neighborhood?: string | null
+  city?: string | null
+  state?: string | null
+  ie?: string | null
   created_at: string
   updated_at: string
 }
@@ -66,10 +113,19 @@ export interface CustomerInsert {
   id?: string
   tenant_id: string
   name: string
+  fantasy_name?: string | null
+  person_type?: 'physical' | 'legal'
   document?: string | null
   phone?: string | null
   email?: string | null
   address?: string | null
+  cep?: string | null
+  number?: string | null
+  complement?: string | null
+  neighborhood?: string | null
+  city?: string | null
+  state?: string | null
+  ie?: string | null
   created_at?: string
   updated_at?: string
 }
@@ -108,13 +164,19 @@ export interface ServiceOrderRow {
   customer_id: string
   vehicle_id: string
   code: number
+  order_type?: 'normal' | 'warranty' | 'budget'
   status: ServiceOrderStatus
   priority: ServiceOrderPriority
   entry_at: string
   exit_at: string | null
   odometer: number | null
   complaint: string | null
+  found_defect?: string | null
   internal_notes: string | null
+  discount_amount?: number
+  labor_total?: number
+  parts_total?: number
+  total_amount?: number
   created_by: string
   created_at: string
   updated_at: string
@@ -126,13 +188,19 @@ export interface ServiceOrderInsert {
   customer_id: string
   vehicle_id: string
   code: number
+  order_type?: 'normal' | 'warranty' | 'budget'
   status?: ServiceOrderStatus
   priority?: ServiceOrderPriority
   entry_at?: string
   exit_at?: string | null
   odometer?: number | null
   complaint?: string | null
+  found_defect?: string | null
   internal_notes?: string | null
+  discount_amount?: number
+  labor_total?: number
+  parts_total?: number
+  total_amount?: number
   created_by: string
   created_at?: string
   updated_at?: string
@@ -142,6 +210,7 @@ export interface ServiceOrderItemRow {
   id: string
   tenant_id: string
   service_order_id: string
+  product_id?: string | null
   kind: ServiceOrderItemKind
   description: string
   quantity: number
@@ -153,6 +222,7 @@ export interface ServiceOrderItemInsert {
   id?: string
   tenant_id: string
   service_order_id: string
+  product_id?: string | null
   kind: ServiceOrderItemKind
   description: string
   quantity?: number
@@ -255,3 +325,4 @@ export interface AuditEventInsert {
   metadata?: Json
   created_at?: string
 }
+

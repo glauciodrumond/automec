@@ -71,16 +71,18 @@ describe('service order workflow', () => {
     const customer = query({ id: 'customer-1', name: 'Ana Lima' })
     const vehicle = query({ id: 'vehicle-1', plate: 'ABC1D23', brand: 'Fiat', model: 'Uno' })
     const items = query([{ id: 'item-1', kind: 'labor', description: 'Diagnostico', quantity: 1, unit_price: 120 }])
-    mocks.from.mockImplementation((table: string) => ({ service_orders: order, customers: customer, vehicles: vehicle, service_order_items: items })[table])
+    const products = query([])
+
+    mocks.from.mockImplementation((table: string) => ({ service_orders: order, customers: customer, vehicles: vehicle, service_order_items: items, products })[table])
 
     render(<MemoryRouter initialEntries={['/orders/order-1']}><Routes><Route path="/orders/:id" element={<ServiceOrderDetail activeTenant={activeTenant} />} /></Routes></MemoryRouter>)
 
-    await screen.findByText('OS 24')
+    await screen.findByRole('heading', { name: /OS 24/i })
     expect(screen.getByRole('tab', { name: 'Resumo' })).toBeTruthy()
     expect(screen.getByRole('tab', { name: 'Check-in' })).toBeTruthy()
-    expect(screen.getByRole('tab', { name: 'Itens' })).toBeTruthy()
+    expect(screen.getByRole('tab', { name: /Itens/i })).toBeTruthy()
     expect(screen.getByRole('tab', { name: 'Fotos' })).toBeTruthy()
-    fireEvent.click(screen.getByRole('tab', { name: 'Itens' }))
+    fireEvent.click(screen.getByRole('tab', { name: /Itens/i }))
     expect(await screen.findByText('Diagnostico')).toBeTruthy()
     expect(items.eq).toHaveBeenCalledWith('tenant_id', 'tenant-1')
     expect(items.eq).toHaveBeenCalledWith('service_order_id', 'order-1')

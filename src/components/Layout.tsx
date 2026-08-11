@@ -21,6 +21,8 @@ export function Layout({ activeTenant, children }: LayoutProps) {
         <div className="brand-block"><Wrench aria-hidden="true" size={20} /><span>{activeTenant.tenantName}</span></div>
         <nav aria-label="Navegacao principal" className="main-nav">
           <NavLink end to="/" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>Ordens</NavLink>
+          <NavLink to="/products" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>Estoque</NavLink>
+          <NavLink to="/customers" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>Clientes</NavLink>
           <NavLink to="/team" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}><Users aria-hidden="true" size={16} />Equipe</NavLink>
         </nav>
         <div className="account-actions">
