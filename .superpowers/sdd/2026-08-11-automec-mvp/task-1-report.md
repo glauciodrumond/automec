@@ -31,3 +31,18 @@ COMMAND RESULTS:
 - `npm.cmd audit --audit-level=high`: passed with 0 vulnerabilities.
 
 CONCERNS: The updated toolchain requires Node `20.19+` or `22.12+`; local runtime is Node `v24.12.0`. npm emitted only an install-script approval warning for `esbuild`; no local `.env` file was created or committed.
+
+FIX ROUND 2
+
+STATUS: DONE
+
+CHANGES:
+- Added `engines.node: ">=20.19"` to `package.json` to declare the minimum runtime required by the Vite 7 toolchain.
+- Added `README.md` with the Node `>=20.19` requirement and the expectation that Vercel use Node 20.x or newer.
+
+COMMAND RESULTS:
+- `npm.cmd test`: passed; 1 test file and 1 test.
+- `npm.cmd run build`: passed; Vite `7.3.6` production build generated `dist/`.
+- `npm.cmd audit --audit-level=high`: passed with 0 vulnerabilities.
+
+CONCERNS: Local runtime is Node `v24.12.0`; deployments must use Node `20.19+` to satisfy the declared engine constraint and Vite 7 requirements.
