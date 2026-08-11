@@ -4,12 +4,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { ServiceOrderDetail } from '../components/ServiceOrderDetail'
 import { ServiceOrderList } from '../components/ServiceOrderList'
+import { NewServiceOrder } from '../components/NewServiceOrder'
 
 const mocks = vi.hoisted(() => ({
   from: vi.fn(),
+  rpc: vi.fn(),
 }))
 
-vi.mock('../lib/supabase', () => ({ supabase: { from: mocks.from } }))
+vi.mock('../lib/supabase', () => ({ supabase: { from: mocks.from, rpc: mocks.rpc } }))
 
 const activeTenant = {
   userId: 'user-1',
@@ -82,5 +84,42 @@ describe('service order workflow', () => {
     expect(await screen.findByText('Diagnostico')).toBeTruthy()
     expect(items.eq).toHaveBeenCalledWith('tenant_id', 'tenant-1')
     expect(items.eq).toHaveBeenCalledWith('service_order_id', 'order-1')
+  })
+
+  it('creates an order through the transactional RPC with normalized form values', async () => {
+    mocks.rpc.mockResolvedValue({ data: 'order-new', error: null })
+
+    render(<MemoryRouter initialEntries={['/orders/new']}><Routes>
+      <Route path="/orders/new" element={<NewServiceOrder activeTenant={activeTenant} />} />
+      <Route path="/orders/:id" element={<p>Order created</p>} />
+    </Routes></MemoryRouter>)
+
+    fireEvent.change(screen.getByLabelText('Nome'), { target: { value: '  Ana Lima  ' } })
+    fireEvent.change(screen.getByLabelText('Telefone'), { target: { value: '  11999990000  ' } })
+    fireEvent.change(screen.getByLabelText('CPF ou CNPJ'), { target: { value: '   ' } })
+    fireEvent.change(screen.getByLabelText('Placa'), { target: { value: ' abc1d23 ' } })
+    fireEvent.change(screen.getByLabelText('Marca'), { target: { value: ' Fiat ' } })
+    fireEvent.change(screen.getByLabelText('Modelo'), { target: { value: ' Uno ' } })
+    fireEvent.change(screen.getByLabelText('Ano'), { target: { value: '2021' } })
+    fireEvent.change(screen.getByLabelText('Cor'), { target: { value: ' Azul ' } })
+    fireEvent.change(screen.getByLabelText('Quilometragem'), { target: { value: '45210' } })
+    fireEvent.change(screen.getByLabelText('Reclamacao'), { target: { value: ' Motor falhando ' } })
+    fireEvent.submit(screen.getByRole('button', { name: 'Criar OS' }).closest('form')!)
+
+    await screen.findByText('Order created')
+    expect(mocks.rpc).toHaveBeenCalledWith('create_service_order_with_customer_vehicle', {
+      p_tenant_id: 'tenant-1',
+      p_customer_name: 'Ana Lima',
+      p_customer_phone: '11999990000',
+      p_customer_document: null,
+      p_vehicle_plate: 'ABC1D23',
+      p_vehicle_brand: 'Fiat',
+      p_vehicle_model: 'Uno',
+      p_vehicle_year: 2021,
+      p_vehicle_color: 'Azul',
+      p_complaint: 'Motor falhando',
+      p_odometer: 45210,
+    })
+    expect(mocks.from).not.toHaveBeenCalled()
   })
 })

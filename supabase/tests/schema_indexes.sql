@@ -62,13 +62,13 @@ from expected left join actual using (relname);
 
 with expected(routine_name) as (
   values ('is_tenant_member'), ('has_tenant_role'), ('create_tenant_with_owner'),
-    ('prevent_actor_field_update')
+    ('create_service_order_with_customer_vehicle'), ('prevent_actor_field_update')
 ), actual as (
   select routine_name
   from information_schema.routines
   where routine_schema = 'public'
 )
-select count(*) = 4 and count(actual.routine_name) = count(expected.routine_name) as required_routines_exist
+select count(*) = 5 and count(actual.routine_name) = count(expected.routine_name) as required_routines_exist
 from expected left join actual using (routine_name);
 
 with expected(policyname, tablename) as (

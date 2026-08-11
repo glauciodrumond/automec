@@ -3,7 +3,6 @@ import { FormEvent, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import type { ActiveTenantContext } from '../lib/tenant'
-import type { CustomerInsert, ServiceOrderInsert, VehicleInsert } from '../types/database'
 
 function optional(value: string) { return value.trim() || null }
 
@@ -15,33 +14,26 @@ export function NewServiceOrder({ activeTenant }: { activeTenant: ActiveTenantCo
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const form = new FormData(event.currentTarget)
-    const customer: CustomerInsert = { tenant_id: activeTenant.tenantId, name: String(form.get('customerName')).trim(), phone: optional(String(form.get('phone'))), document: optional(String(form.get('document'))) }
     const year = optional(String(form.get('year')))
     const odometer = optional(String(form.get('odometer')))
     setSubmitting(true)
     setError(null)
 
-    const { data: createdCustomer, error: customerError } = await supabase.from('customers').insert(customer).select('id').maybeSingle()
-    if (customerError || !createdCustomer) { setError('Nao foi possivel cadastrar o cliente.'); setSubmitting(false); return }
-
-    const vehicle: VehicleInsert = {
-      tenant_id: activeTenant.tenantId, customer_id: createdCustomer.id, plate: String(form.get('plate')).trim().toUpperCase(),
-      brand: optional(String(form.get('brand'))), model: optional(String(form.get('model'))), year: year ? Number(year) : null, color: optional(String(form.get('color'))),
-    }
-    const { data: createdVehicle, error: vehicleError } = await supabase.from('vehicles').insert(vehicle).select('id').maybeSingle()
-    if (vehicleError || !createdVehicle) { setError('Nao foi possivel cadastrar o veiculo.'); setSubmitting(false); return }
-
-    const { data: latestOrder, error: codeError } = await supabase.from('service_orders').select('code').eq('tenant_id', activeTenant.tenantId).order('code', { ascending: false }).limit(1).maybeSingle()
-    if (codeError) { setError('Nao foi possivel gerar o codigo da OS.'); setSubmitting(false); return }
-
-    const order: ServiceOrderInsert = {
-      tenant_id: activeTenant.tenantId, customer_id: createdCustomer.id, vehicle_id: createdVehicle.id,
-      code: (latestOrder?.code ?? 0) + 1, status: 'open', priority: 'normal', created_by: activeTenant.userId,
-      complaint: optional(String(form.get('complaint'))), odometer: odometer ? Number(odometer) : null,
-    }
-    const { data: createdOrder, error: orderError } = await supabase.from('service_orders').insert(order).select('id').maybeSingle()
-    if (orderError || !createdOrder) { setError('Nao foi possivel criar a ordem de servico.'); setSubmitting(false); return }
-    navigate(`/orders/${createdOrder.id}`)
+    const { data: createdOrderId, error: rpcError } = await supabase.rpc('create_service_order_with_customer_vehicle', {
+      p_tenant_id: activeTenant.tenantId,
+      p_customer_name: String(form.get('customerName')).trim(),
+      p_customer_phone: optional(String(form.get('phone'))),
+      p_customer_document: optional(String(form.get('document'))),
+      p_vehicle_plate: String(form.get('plate')).trim().toUpperCase(),
+      p_vehicle_brand: optional(String(form.get('brand'))),
+      p_vehicle_model: optional(String(form.get('model'))),
+      p_vehicle_year: year ? Number(year) : null,
+      p_vehicle_color: optional(String(form.get('color'))),
+      p_complaint: optional(String(form.get('complaint'))),
+      p_odometer: odometer ? Number(odometer) : null,
+    })
+    if (rpcError || !createdOrderId) { setError('Nao foi possivel criar a ordem de servico.'); setSubmitting(false); return }
+    navigate(`/orders/${createdOrderId}`)
   }
 
   return (
