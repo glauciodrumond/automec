@@ -15,6 +15,7 @@ interface AuthGateProps {
 interface MembershipResponse {
   tenant_id: string
   role: TenantRole
+  created_at: string
   tenants: { name: string } | null
 }
 
@@ -43,23 +44,33 @@ export function AuthGate({ children }: AuthGateProps) {
     setError(null)
     setMembershipError(null)
 
-    const { data, error: membershipError } = await supabase
+    const { data, error: membershipQueryError } = await supabase
       .from('tenant_members')
-      .select('tenant_id, role, tenants ( name )')
+      .select('tenant_id, role, created_at, tenants ( name )')
       .eq('user_id', currentSession.user.id)
+      // MVP policy: use the user's oldest membership as their active workshop.
+      .order('created_at', { ascending: true })
       .limit(1)
       .maybeSingle()
 
-    if (membershipError) {
+    if (membershipQueryError) {
       setActiveTenant(null)
-      setMembershipError(messageFor(membershipError))
-      setError(messageFor(membershipError))
+      setMembershipError(messageFor(membershipQueryError))
+      setError(messageFor(membershipQueryError))
+    } else if (!data) {
+      setActiveTenant(null)
     } else {
-      setActiveTenant(
-        data
-          ? getActiveTenant(currentSession.user.id, data as unknown as MembershipResponse)
-          : null,
+      const tenant = getActiveTenant(
+        currentSession.user.id,
+        data as unknown as MembershipResponse,
       )
+
+      if (!tenant) {
+        setActiveTenant(null)
+        setMembershipError('A associacao da oficina nao pode ser acessada.')
+      } else {
+        setActiveTenant(tenant)
+      }
     }
 
     setLoading(false)

@@ -17,7 +17,7 @@ describe('getActiveTenant', () => {
     })
   })
 
-  it('returns null when the joined tenant cannot be read', () => {
+  it('returns null when the joined tenant cannot be read so the gate can surface a membership error', () => {
     expect(
       getActiveTenant('user-1', {
         tenant_id: 'tenant-1',
