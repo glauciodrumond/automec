@@ -27,6 +27,7 @@ function query(data: unknown) {
     in: vi.fn(),
     order: vi.fn(),
     limit: vi.fn(),
+    update: vi.fn(),
     maybeSingle: vi.fn(),
     then: (resolve: (value: { data: unknown; error: null }) => unknown) => resolve({ data, error: null }),
   }
@@ -35,6 +36,7 @@ function query(data: unknown) {
   builder.in.mockReturnValue(builder)
   builder.order.mockReturnValue(builder)
   builder.limit.mockReturnValue(builder)
+  builder.update.mockReturnValue(builder)
   builder.maybeSingle.mockResolvedValue({ data, error: null })
   return builder
 }
@@ -72,8 +74,9 @@ describe('service order workflow', () => {
     const vehicle = query({ id: 'vehicle-1', plate: 'ABC1D23', brand: 'Fiat', model: 'Uno' })
     const items = query([{ id: 'item-1', kind: 'labor', description: 'Diagnostico', quantity: 1, unit_price: 120 }])
     const products = query([])
+    const tenants = query({ id: 'tenant-1', name: 'Oficina Central' })
 
-    mocks.from.mockImplementation((table: string) => ({ service_orders: order, customers: customer, vehicles: vehicle, service_order_items: items, products })[table])
+    mocks.from.mockImplementation((table: string) => ({ service_orders: order, customers: customer, vehicles: vehicle, service_order_items: items, products, tenants })[table])
 
     render(<MemoryRouter initialEntries={['/orders/order-1']}><Routes><Route path="/orders/:id" element={<ServiceOrderDetail activeTenant={activeTenant} />} /></Routes></MemoryRouter>)
 
@@ -96,23 +99,23 @@ describe('service order workflow', () => {
       <Route path="/orders/:id" element={<p>Order created</p>} />
     </Routes></MemoryRouter>)
 
-    fireEvent.change(screen.getByLabelText('Nome'), { target: { value: '  Ana Lima  ' } })
-    fireEvent.change(screen.getByLabelText('Telefone'), { target: { value: '  11999990000  ' } })
-    fireEvent.change(screen.getByLabelText('CPF ou CNPJ'), { target: { value: '   ' } })
-    fireEvent.change(screen.getByLabelText('Placa'), { target: { value: ' abc1d23 ' } })
-    fireEvent.change(screen.getByLabelText('Marca'), { target: { value: ' Fiat ' } })
-    fireEvent.change(screen.getByLabelText('Modelo'), { target: { value: ' Uno ' } })
-    fireEvent.change(screen.getByLabelText('Ano'), { target: { value: '2021' } })
-    fireEvent.change(screen.getByLabelText('Cor'), { target: { value: ' Azul ' } })
-    fireEvent.change(screen.getByLabelText('Quilometragem'), { target: { value: '45210' } })
-    fireEvent.change(screen.getByLabelText('Reclamacao'), { target: { value: ' Motor falhando ' } })
+    fireEvent.change(screen.getByLabelText(/Nome/i), { target: { value: '  Ana Lima  ' } })
+    fireEvent.change(screen.getByLabelText(/Telefone/i), { target: { value: '11999990000' } })
+    fireEvent.change(screen.getByLabelText(/CPF/i), { target: { value: '   ' } })
+    fireEvent.change(screen.getByLabelText(/Placa/i), { target: { value: ' abc1d23 ' } })
+    fireEvent.change(screen.getByLabelText(/Marca/i), { target: { value: ' Fiat ' } })
+    fireEvent.change(screen.getByLabelText(/Modelo/i), { target: { value: ' Uno ' } })
+    fireEvent.change(screen.getByLabelText(/Ano/i), { target: { value: '2021' } })
+    fireEvent.change(screen.getByLabelText(/Cor/i), { target: { value: ' Azul ' } })
+    fireEvent.change(screen.getByLabelText(/Quilometragem/i), { target: { value: '45210' } })
+    fireEvent.change(screen.getByLabelText(/Reclamação|Reclamacao/i), { target: { value: ' Motor falhando ' } })
     fireEvent.submit(screen.getByRole('button', { name: 'Criar OS' }).closest('form')!)
 
     await screen.findByText('Order created')
     expect(mocks.rpc).toHaveBeenCalledWith('create_service_order_with_customer_vehicle', {
       p_tenant_id: 'tenant-1',
       p_customer_name: 'Ana Lima',
-      p_customer_phone: '11999990000',
+      p_customer_phone: '(11) 99999-0000',
       p_customer_document: null,
       p_vehicle_plate: 'ABC1D23',
       p_vehicle_brand: 'Fiat',

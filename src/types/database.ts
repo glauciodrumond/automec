@@ -37,6 +37,8 @@ export interface TenantMemberRow {
   tenant_id: string
   user_id: string
   role: TenantRole
+  commission_pct?: number
+  commission_type?: 'percentage' | 'fixed'
   created_at: string
 }
 export type TenantMembershipRow = TenantMemberRow
@@ -46,6 +48,8 @@ export interface TenantMemberInsert {
   tenant_id: string
   user_id: string
   role: TenantRole
+  commission_pct?: number
+  commission_type?: 'percentage' | 'fixed'
   created_at?: string
 }
 export type TenantMembershipInsert = TenantMemberInsert
@@ -65,6 +69,8 @@ export interface ProductRow {
   stock_current: number
   stock_min: number
   ncm: string | null
+  barcode?: string | null
+  supplier_name?: string | null
   active: boolean
   created_at: string
   updated_at: string
@@ -83,6 +89,8 @@ export interface ProductInsert {
   stock_current?: number
   stock_min?: number
   ncm?: string | null
+  barcode?: string | null
+  supplier_name?: string | null
   active?: boolean
   created_at?: string
   updated_at?: string
@@ -105,6 +113,8 @@ export interface CustomerRow {
   city?: string | null
   state?: string | null
   ie?: string | null
+  birth_date?: string | null
+  send_reminder_days?: number
   created_at: string
   updated_at: string
 }
@@ -126,6 +136,8 @@ export interface CustomerInsert {
   city?: string | null
   state?: string | null
   ie?: string | null
+  birth_date?: string | null
+  send_reminder_days?: number
   created_at?: string
   updated_at?: string
 }
@@ -158,6 +170,38 @@ export interface VehicleInsert {
   updated_at?: string
 }
 
+export type ServiceOrderStage = 'entry' | 'diagnosis' | 'waiting_parts' | 'in_execution' | 'ready' | 'delivered'
+export type PaymentMethod = 'pix' | 'credit_card' | 'debit_card' | 'cash' | 'ticket' | 'billed'
+export type PaymentStatus = 'pending' | 'paid' | 'overdue'
+
+export interface PaymentRow {
+  id: string
+  tenant_id: string
+  service_order_id: string
+  customer_id: string | null
+  amount: number
+  payment_method: PaymentMethod
+  status: PaymentStatus
+  due_date: string
+  paid_at: string | null
+  notes: string | null
+  created_at: string
+}
+export type Payment = PaymentRow
+export interface PaymentInsert {
+  id?: string
+  tenant_id: string
+  service_order_id: string
+  customer_id?: string | null
+  amount: number
+  payment_method: PaymentMethod
+  status?: PaymentStatus
+  due_date?: string
+  paid_at?: string | null
+  notes?: string | null
+  created_at?: string
+}
+
 export interface ServiceOrderRow {
   id: string
   tenant_id: string
@@ -166,6 +210,7 @@ export interface ServiceOrderRow {
   code: number
   order_type?: 'normal' | 'warranty' | 'budget'
   status: ServiceOrderStatus
+  stage?: ServiceOrderStage
   priority: ServiceOrderPriority
   entry_at: string
   exit_at: string | null
@@ -177,6 +222,11 @@ export interface ServiceOrderRow {
   labor_total?: number
   parts_total?: number
   total_amount?: number
+  payment_method?: PaymentMethod | null
+  payment_status?: PaymentStatus
+  assigned_to?: string | null
+  approved_at?: string | null
+  approved_by?: string | null
   created_by: string
   created_at: string
   updated_at: string
@@ -190,6 +240,7 @@ export interface ServiceOrderInsert {
   code: number
   order_type?: 'normal' | 'warranty' | 'budget'
   status?: ServiceOrderStatus
+  stage?: ServiceOrderStage
   priority?: ServiceOrderPriority
   entry_at?: string
   exit_at?: string | null
@@ -201,6 +252,11 @@ export interface ServiceOrderInsert {
   labor_total?: number
   parts_total?: number
   total_amount?: number
+  payment_method?: PaymentMethod | null
+  payment_status?: PaymentStatus
+  assigned_to?: string | null
+  approved_at?: string | null
+  approved_by?: string | null
   created_by: string
   created_at?: string
   updated_at?: string
@@ -326,3 +382,125 @@ export interface AuditEventInsert {
   created_at?: string
 }
 
+// ─── Enterprise Full Schema Types ────────────────────────────────────────────
+
+export type ScheduleStatus = 'scheduled' | 'confirmed' | 'converted' | 'cancelled'
+
+export interface ScheduleRow {
+  id: string
+  tenant_id: string
+  customer_id: string | null
+  vehicle_id: string | null
+  assigned_to: string | null
+  scheduled_at: string
+  duration_min: number
+  service_description: string
+  status: ScheduleStatus
+  service_order_id: string | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+export type Schedule = ScheduleRow
+export interface ScheduleInsert {
+  id?: string
+  tenant_id: string
+  customer_id?: string | null
+  vehicle_id?: string | null
+  assigned_to?: string | null
+  scheduled_at: string
+  duration_min?: number
+  service_description: string
+  status?: ScheduleStatus
+  service_order_id?: string | null
+  notes?: string | null
+  created_at?: string
+  updated_at?: string
+}
+
+export type CommissionStatus = 'pending' | 'paid'
+
+export interface CommissionRow {
+  id: string
+  tenant_id: string
+  service_order_id: string
+  user_id: string
+  base_amount: number
+  commission_pct: number
+  commission_amount: number
+  status: CommissionStatus
+  paid_at: string | null
+  notes: string | null
+  created_at: string
+}
+export type Commission = CommissionRow
+export interface CommissionInsert {
+  id?: string
+  tenant_id: string
+  service_order_id: string
+  user_id: string
+  base_amount: number
+  commission_pct: number
+  commission_amount: number
+  status?: CommissionStatus
+  paid_at?: string | null
+  notes?: string | null
+  created_at?: string
+}
+
+export type CashTransactionKind = 'income' | 'expense'
+
+export interface CashTransactionRow {
+  id: string
+  tenant_id: string
+  service_order_id: string | null
+  payment_id: string | null
+  kind: CashTransactionKind
+  category: string
+  description: string
+  amount: number
+  transaction_date: string
+  notes: string | null
+  created_at: string
+}
+export type CashTransaction = CashTransactionRow
+export interface CashTransactionInsert {
+  id?: string
+  tenant_id: string
+  service_order_id?: string | null
+  payment_id?: string | null
+  kind: CashTransactionKind
+  category: string
+  description: string
+  amount: number
+  transaction_date?: string
+  notes?: string | null
+  created_at?: string
+}
+
+export interface ServiceOrderTokenRow {
+  token: string
+  tenant_id: string
+  service_order_id: string
+  expires_at: string
+  created_at: string
+}
+export type ServiceOrderToken = ServiceOrderTokenRow
+
+export interface ServiceOrderApprovalRow {
+  id: string
+  token: string
+  service_order_item_id: string
+  approved: boolean
+  customer_name: string | null
+  approved_at: string
+}
+export type ServiceOrderApproval = ServiceOrderApprovalRow
+export interface ServiceOrderApprovalInsert {
+  id?: string
+  token: string
+  service_order_item_id: string
+  approved?: boolean
+  customer_name?: string | null
+  approved_at?: string
+}

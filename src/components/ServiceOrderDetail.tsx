@@ -1,10 +1,11 @@
-import { ArrowLeft, Plus, Trash2, Save, Tag, DollarSign } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2, Save, Tag, Printer, CheckCircle, Share2 } from 'lucide-react'
 import { FormEvent, useEffect, useId, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { CheckinPanel } from './CheckinPanel'
+import { PrintableServiceOrder } from './PrintableServiceOrder'
 import { supabase } from '../lib/supabase'
 import type { ActiveTenantContext } from '../lib/tenant'
-import type { Customer, Product, ServiceOrder, ServiceOrderItem, ServiceOrderItemKind, Vehicle } from '../types/database'
+import type { Customer, Product, ServiceOrder, ServiceOrderItem, ServiceOrderItemKind, ServiceOrderStage, Tenant, Vehicle } from '../types/database'
 
 type Tab = 'summary' | 'checkin' | 'items' | 'photos'
 const tabs: Array<{ id: Tab; label: string }> = [
@@ -12,6 +13,15 @@ const tabs: Array<{ id: Tab; label: string }> = [
   { id: 'checkin', label: 'Check-in' },
   { id: 'items', label: 'Itens & Serviços' },
   { id: 'photos', label: 'Fotos' },
+]
+
+const stageLabels: Array<{ id: ServiceOrderStage; label: string }> = [
+  { id: 'entry', label: '1. Entrada' },
+  { id: 'diagnosis', label: '2. Diagnóstico' },
+  { id: 'waiting_parts', label: '3. Aguard. Peça' },
+  { id: 'in_execution', label: '4. Em Execução' },
+  { id: 'ready', label: '5. Pronto' },
+  { id: 'delivered', label: '6. Entregue' },
 ]
 
 function formatDate(value: string) {
@@ -27,6 +37,7 @@ export function ServiceOrderDetail({ activeTenant }: { activeTenant: ActiveTenan
   const tabId = useId()
   const [tab, setTab] = useState<Tab>('summary')
   const [order, setOrder] = useState<ServiceOrder | null>(null)
+  const [tenant, setTenant] = useState<Tenant | null>(null)
   const [customer, setCustomer] = useState<Customer | null>(null)
   const [vehicle, setVehicle] = useState<Vehicle | null>(null)
   const [items, setItems] = useState<ServiceOrderItem[]>([])
@@ -34,6 +45,7 @@ export function ServiceOrderDetail({ activeTenant }: { activeTenant: ActiveTenan
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showItemModal, setShowItemModal] = useState(false)
+  const [showPrintModal, setShowPrintModal] = useState(false)
   const [foundDefectInput, setFoundDefectInput] = useState('')
   const [savingDefect, setSavingDefect] = useState(false)
 
@@ -59,14 +71,16 @@ export function ServiceOrderDetail({ activeTenant }: { activeTenant: ActiveTenan
       setOrder(typedOrder)
       setFoundDefectInput(typedOrder.found_defect || '')
 
-      const [{ data: loadedCustomer }, { data: loadedVehicle }, { data: loadedItems }, { data: loadedProducts }] =
+      const [{ data: loadedTenant }, { data: loadedCustomer }, { data: loadedVehicle }, { data: loadedItems }, { data: loadedProducts }] =
         await Promise.all([
+          supabase.from('tenants').select('*').eq('id', activeTenant.tenantId).maybeSingle(),
           supabase.from('customers').select('*').eq('tenant_id', activeTenant.tenantId).eq('id', typedOrder.customer_id).maybeSingle(),
           supabase.from('vehicles').select('*').eq('tenant_id', activeTenant.tenantId).eq('id', typedOrder.vehicle_id).maybeSingle(),
           supabase.from('service_order_items').select('*').eq('tenant_id', activeTenant.tenantId).eq('service_order_id', typedOrder.id).order('created_at', { ascending: true }),
           supabase.from('products').select('*').eq('tenant_id', activeTenant.tenantId).eq('active', true).order('name', { ascending: true }),
         ])
 
+      setTenant((loadedTenant as Tenant | null) ?? null)
       setCustomer((loadedCustomer as Customer | null) ?? null)
       setVehicle((loadedVehicle as Vehicle | null) ?? null)
       setItems((loadedItems as ServiceOrderItem[] | null) ?? [])
@@ -99,6 +113,16 @@ export function ServiceOrderDetail({ activeTenant }: { activeTenant: ActiveTenan
         total_amount: totalAmount,
         updated_at: new Date().toISOString(),
       })
+      .eq('tenant_id', activeTenant.tenantId)
+      .eq('id', order.id)
+  }
+
+  async function handleStageChange(newStage: ServiceOrderStage) {
+    if (!order) return
+    setOrder((prev) => (prev ? { ...prev, stage: newStage } : prev))
+    await supabase
+      .from('service_orders')
+      .update({ stage: newStage, updated_at: new Date().toISOString() })
       .eq('tenant_id', activeTenant.tenantId)
       .eq('id', order.id)
   }
@@ -159,6 +183,26 @@ export function ServiceOrderDetail({ activeTenant }: { activeTenant: ActiveTenan
     await updateTotals(updatedItems)
   }
 
+  async function handleSendPortalLink() {
+    if (!order) return
+    const { data: tokenValue } = await supabase.rpc('get_or_create_order_token', {
+      p_service_order_id: order.id,
+    })
+    if (tokenValue) {
+      const portalUrl = `${window.location.origin}/portal/${tokenValue as string}`
+      const phone = customer?.phone?.replace(/\D/g, '')
+      if (phone) {
+        const msg = `Olá ${customer?.name ?? ''}! Acesse o status do seu veículo e aprove o orçamento: ${portalUrl}`
+        window.open(`https://wa.me/55${phone}?text=${encodeURIComponent(msg)}`, '_blank')
+      } else {
+        await navigator.clipboard.writeText(portalUrl)
+        alert('Link copiado para a área de transferência!')
+      }
+    } else {
+      alert('Não foi possível gerar o link do portal. Verifique a configuração.')
+    }
+  }
+
   async function handleSaveFoundDefect() {
     if (!order) return
     setSavingDefect(true)
@@ -192,7 +236,7 @@ export function ServiceOrderDetail({ activeTenant }: { activeTenant: ActiveTenan
   if (error && !order)
     return (
       <section className="screen-section">
-        <Link className="secondary-link" to="/">
+        <Link className="secondary-link" to="/orders">
           <ArrowLeft aria-hidden="true" size={18} /> Voltar
         </Link>
         <p className="error-message" role="alert">{error}</p>
@@ -203,17 +247,43 @@ export function ServiceOrderDetail({ activeTenant }: { activeTenant: ActiveTenan
   const partsTotal = items.filter((i) => i.kind === 'part').reduce((sum, i) => sum + i.quantity * i.unit_price, 0)
   const laborTotal = items.filter((i) => i.kind !== 'part').reduce((sum, i) => sum + i.quantity * i.unit_price, 0)
   const totalAmount = partsTotal + laborTotal - (order.discount_amount || 0)
+  const currentStage = order.stage || 'entry'
 
   return (
-    <section className="screen-section">
+    <section className="screen-section full-widescreen">
       <div className="screen-heading">
         <div>
           <p className="eyebrow">Ordem de serviço #{order.code}</p>
           <h1>OS {order.code} - {order.status.toUpperCase()}</h1>
         </div>
-        <Link className="secondary-link" to="/">
-          <ArrowLeft aria-hidden="true" size={18} /> Voltar
-        </Link>
+        <div className="header-actions">
+          <button type="button" className="secondary-btn" onClick={() => void handleSendPortalLink()}>
+            <Share2 size={16} /> Enviar Link ao Cliente
+          </button>
+          <button type="button" className="secondary-btn" onClick={() => setShowPrintModal(true)}>
+            <Printer size={16} /> Imprimir / PDF
+          </button>
+          <Link className="secondary-link" to="/orders">
+            <ArrowLeft aria-hidden="true" size={18} /> Voltar
+          </Link>
+        </div>
+      </div>
+
+      {/* Stage Stepper */}
+      <div className="stage-stepper">
+        {stageLabels.map((stg) => {
+          const isCurrent = currentStage === stg.id
+          return (
+            <button
+              key={stg.id}
+              type="button"
+              className={isCurrent ? 'step-btn active' : 'step-btn'}
+              onClick={() => void handleStageChange(stg.id)}
+            >
+              <CheckCircle size={14} /> {stg.label}
+            </button>
+          )
+        })}
       </div>
 
       <section className="order-header" aria-label="Dados da ordem">
@@ -391,6 +461,17 @@ export function ServiceOrderDetail({ activeTenant }: { activeTenant: ActiveTenan
             </form>
           </div>
         </div>
+      )}
+
+      {showPrintModal && tenant && (
+        <PrintableServiceOrder
+          tenant={tenant}
+          order={order}
+          customer={customer}
+          vehicle={vehicle}
+          items={items}
+          onClose={() => setShowPrintModal(false)}
+        />
       )}
     </section>
   )
