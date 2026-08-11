@@ -15,13 +15,12 @@ interface KanbanOrder {
   plate: string
   brand: string | null
   model: string | null
-  mechanic_name: string | null
-  mechanic_id: string | null
+  assigned_to: string | null
 }
 
 interface MechanicOption {
   user_id: string
-  display_name: string | null
+  role?: string | null
 }
 
 const STAGES: { id: ServiceOrderStage; label: string; color: string }[] = [
@@ -50,9 +49,9 @@ interface KanbanBoardProps {
 
 export function KanbanBoard({ activeTenant }: KanbanBoardProps) {
   const [orders, setOrders] = useState<KanbanOrder[]>([])
-  const [mechanics, setMechanics] = useState<MechanicOption[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [mechanics, setMechanics] = useState<MechanicOption[]>([])
   const [filterMechanic, setFilterMechanic] = useState<string>('')
   const [filterDateFrom, setFilterDateFrom] = useState<string>('')
   const [filterDateTo, setFilterDateTo] = useState<string>('')
@@ -64,61 +63,65 @@ export function KanbanBoard({ activeTenant }: KanbanBoardProps) {
       setLoading(true)
       setError(null)
 
-      const { data: memberData } = await supabase
-        .from('tenant_members')
-        .select('user_id, display_name')
-        .eq('tenant_id', activeTenant.tenantId)
+      try {
+        const { data: memberData } = await supabase
+          .from('tenant_members')
+          .select('user_id, role')
+          .eq('tenant_id', activeTenant.tenantId)
 
-      let query = supabase
-        .from('service_orders')
-        .select(`
-          id, code, stage, priority, total_amount,
-          mechanic_id, mechanic_name,
-          customers(name),
-          vehicles(plate, brand, model)
-        `)
-        .eq('tenant_id', activeTenant.tenantId)
-        .neq('status', 'cancelled')
-        .order('code', { ascending: false })
+        let query = supabase
+          .from('service_orders')
+          .select(`
+            id, code, stage, priority, total_amount, assigned_to,
+            customers(name),
+            vehicles(plate, brand, model)
+          `)
+          .eq('tenant_id', activeTenant.tenantId)
+          .neq('status', 'cancelled')
+          .order('code', { ascending: false })
 
-      if (filterDateFrom) query = query.gte('entry_at', filterDateFrom)
-      if (filterDateTo) query = query.lte('entry_at', filterDateTo + 'T23:59:59')
+        if (filterDateFrom) query = query.gte('entry_at', filterDateFrom)
+        if (filterDateTo) query = query.lte('entry_at', filterDateTo + 'T23:59:59')
 
-      const { data, error: fetchError } = await query
+        const { data, error: fetchError } = await query
 
-      if (!active) return
+        if (!active) return
 
-      if (fetchError) {
+        if (fetchError) {
+          setError('Não foi possível carregar as ordens de serviço.')
+          setLoading(false)
+          return
+        }
+
+        type VehicleRow = { plate: string; brand: string | null; model: string | null }
+        type CustomerRow = { name: string }
+
+        const rows: KanbanOrder[] = ((data as any[]) ?? []).map((row) => ({
+          id: row.id as string,
+          code: row.code as number,
+          stage: ((row.stage ?? 'entry') as ServiceOrderStage),
+          priority: row.priority as ServiceOrderPriority,
+          total_amount: (row.total_amount as number | null) ?? null,
+          customer_name: (row.customers as CustomerRow | null)?.name ?? 'Cliente',
+          plate: (row.vehicles as VehicleRow | null)?.plate ?? '—',
+          brand: (row.vehicles as VehicleRow | null)?.brand ?? null,
+          model: (row.vehicles as VehicleRow | null)?.model ?? null,
+          assigned_to: (row.assigned_to as string | null) ?? null,
+        }))
+
+        setOrders(rows)
+        setMechanics(
+          ((memberData as any[]) ?? []).map((m) => ({
+            user_id: m.user_id as string,
+            role: (m.role as string | null) ?? null,
+          }))
+        )
+        setLoading(false)
+      } catch (err) {
+        if (!active) return
         setError('Não foi possível carregar as ordens de serviço.')
         setLoading(false)
-        return
       }
-
-      type VehicleRow = { plate: string; brand: string | null; model: string | null }
-      type CustomerRow = { name: string }
-
-      const rows: KanbanOrder[] = ((data as any[]) ?? []).map((row) => ({
-        id: row.id as string,
-        code: row.code as number,
-        stage: ((row.stage ?? 'entry') as ServiceOrderStage),
-        priority: row.priority as ServiceOrderPriority,
-        total_amount: (row.total_amount as number | null) ?? null,
-        customer_name: (row.customers as CustomerRow | null)?.name ?? 'Cliente',
-        plate: (row.vehicles as VehicleRow | null)?.plate ?? '—',
-        brand: (row.vehicles as VehicleRow | null)?.brand ?? null,
-        model: (row.vehicles as VehicleRow | null)?.model ?? null,
-        mechanic_id: (row.mechanic_id as string | null) ?? null,
-        mechanic_name: (row.mechanic_name as string | null) ?? null,
-      }))
-
-      setOrders(rows)
-      setMechanics(
-        ((memberData as any[]) ?? []).map((m) => ({
-          user_id: m.user_id as string,
-          display_name: (m.display_name as string | null) ?? (m.user_id as string),
-        }))
-      )
-      setLoading(false)
     }
 
     void loadData()
@@ -139,7 +142,7 @@ export function KanbanBoard({ activeTenant }: KanbanBoardProps) {
   }
 
   const filteredOrders = filterMechanic
-    ? orders.filter((o) => o.mechanic_id === filterMechanic)
+    ? orders.filter((o) => o.assigned_to === filterMechanic)
     : orders
 
   const stageIndex = (stageId: ServiceOrderStage) =>
@@ -166,7 +169,7 @@ export function KanbanBoard({ activeTenant }: KanbanBoardProps) {
             <option value="">Todos</option>
             {mechanics.map((m) => (
               <option key={m.user_id} value={m.user_id}>
-                {m.display_name}
+                {m.user_id}
               </option>
             ))}
           </select>
@@ -209,7 +212,11 @@ export function KanbanBoard({ activeTenant }: KanbanBoardProps) {
       </div>
 
       {loading && <p className="status-message">Carregando ordens...</p>}
-      {error && <p className="error-message" role="alert">{error}</p>}
+      {error && (
+        <div className="error-message" role="alert" style={{ marginBottom: 20 }}>
+          {error}
+        </div>
+      )}
 
       {!loading && !error && (
         <div className="kanban-board">
@@ -250,9 +257,9 @@ export function KanbanBoard({ activeTenant }: KanbanBoardProps) {
                             {[order.brand, order.model].filter(Boolean).join(' ') || 'Veículo'}
                           </div>
                           <div className="kanban-card-customer">{order.customer_name}</div>
-                          {order.mechanic_name && (
+                          {order.assigned_to && (
                             <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 2 }}>
-                              🔧 {order.mechanic_name}
+                              🔧 {order.assigned_to}
                             </div>
                           )}
                           <div className="kanban-card-total">{formatCurrency(order.total_amount)}</div>

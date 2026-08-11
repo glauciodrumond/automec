@@ -365,3 +365,49 @@ button { cursor: pointer; }
   .kanban-board { flex-direction: column; }
   .kanban-column { width: 100%; }
 }
+
+/* ===================== Checkin Panel Redesign ===================== */
+.checkin-container { display: flex; flex-direction: column; gap: 20px; padding-top: 16px; }
+.checkin-summary-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.summary-stat { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; display: flex; flex-direction: column; gap: 2px; }
+.summary-stat strong { font-family: 'Outfit', sans-serif; font-size: 1.3rem; font-weight: 800; }
+.summary-stat span { font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #64748b; }
+.summary-stat.ok strong { color: #10b981; }
+.summary-stat.attention strong { color: #f59e0b; }
+.summary-stat.damaged strong { color: #ef4444; }
+.summary-stat.photos strong { color: #2563eb; }
+
+.checkin-categories-grid { display: flex; flex-direction: column; gap: 16px; }
+.checkin-card-category { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 18px; }
+.category-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px; }
+.category-header h3 { margin: 0; font-size: 1rem; font-family: 'Outfit', sans-serif; color: #0f172a; display: flex; align-items: center; gap: 8px; }
+.category-photo-badge { font-size: 0.78rem; color: #64748b; font-weight: 600; display: flex; align-items: center; gap: 4px; background: #f8fafc; padding: 3px 8px; border-radius: 999px; border: 1px solid #e2e8f0; }
+
+.category-items-list { display: flex; flex-direction: column; gap: 10px; }
+.checkin-item-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 8px 12px; background: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0; }
+.item-label-container strong { font-size: 0.88rem; color: #0f172a; display: block; }
+.item-notes-preview { font-size: 0.78rem; color: #64748b; display: block; margin-top: 2px; }
+
+.status-selector-group { display: flex; gap: 4px; }
+.status-pill { border: 1px solid #cbd5e1; background: #fff; color: #475569; border-radius: 6px; padding: 4px 10px; font-size: 0.78rem; font-weight: 700; cursor: pointer; transition: all 0.15s; }
+.status-pill:hover { border-color: #94a3b8; background: #f1f5f9; }
+.status-pill.active { border-width: 2px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+
+/* Photos Gallery Mode */
+.checkin-photos-gallery { display: flex; flex-direction: column; gap: 20px; }
+.checkin-photos-gallery h2 { margin: 0; font-size: 1.1rem; }
+.photo-sections-grid { display: flex; flex-direction: column; gap: 16px; }
+.photo-category-block { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; }
+.photo-category-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; font-weight: 700; color: #0f172a; }
+.upload-btn-label { display: inline-flex; align-items: center; gap: 6px; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; border-radius: 6px; padding: 6px 12px; font-size: 0.8rem; font-weight: 700; cursor: pointer; }
+.upload-btn-label:hover { background: #dbeafe; }
+.photo-empty-slot { color: #94a3b8; font-size: 0.8rem; margin: 0; padding: 12px; background: #f8fafc; border-radius: 6px; text-align: center; }
+.photo-thumbnails-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
+.photo-thumb-card { position: relative; width: 120px; height: 120px; border-radius: 8px; overflow: hidden; border: 1px solid #e2e8f0; background: #000; }
+.photo-thumb-card img { width: 100%; height: 100%; object-fit: cover; }
+.photo-thumb-actions { position: absolute; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; gap: 8px; opacity: 0; transition: opacity 0.15s; }
+.photo-thumb-card:hover .photo-thumb-actions { opacity: 1; }
+.thumb-action-btn { border: 0; background: #fff; color: #0f172a; border-radius: 50%; width: 30px; height: 30px; display: grid; place-items: center; cursor: pointer; }
+.thumb-action-btn.delete { color: #ef4444; }
+.thumb-action-btn:hover { transform: scale(1.1); }
+

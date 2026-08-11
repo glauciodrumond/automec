@@ -127,4 +127,41 @@ describe('service order workflow', () => {
     })
     expect(mocks.from).not.toHaveBeenCalled()
   })
+
+  it('displays detailed error message when item insertion fails', async () => {
+    const order = query({
+      id: 'order-1', code: 24, status: 'open', priority: 'normal', entry_at: '2026-08-11T10:00:00Z', odometer: 45210,
+      complaint: 'Motor falhando', customer_id: 'customer-1', vehicle_id: 'vehicle-1',
+    })
+    const customer = query({ id: 'customer-1', name: 'Ana Lima' })
+    const vehicle = query({ id: 'vehicle-1', plate: 'ABC1D23', brand: 'Fiat', model: 'Uno' })
+    const itemsBuilder = query([])
+    const insertMock = vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        single: vi.fn().mockResolvedValue({ data: null, error: { message: 'FK constraint failed' } }),
+      }),
+    })
+    itemsBuilder.insert = insertMock
+    const products = query([])
+    const tenants = query({ id: 'tenant-1', name: 'Oficina Central' })
+
+    mocks.from.mockImplementation((table: string) => ({ service_orders: order, customers: customer, vehicles: vehicle, service_order_items: itemsBuilder, products, tenants })[table])
+
+    render(<MemoryRouter initialEntries={['/orders/order-1']}><Routes><Route path="/orders/:id" element={<ServiceOrderDetail activeTenant={activeTenant} />} /></Routes></MemoryRouter>)
+
+    await screen.findByRole('heading', { name: /OS 24/i })
+    fireEvent.click(screen.getByRole('tab', { name: /Itens/i }))
+    fireEvent.click(screen.getByRole('button', { name: /Adicionar Item/i }))
+
+    fireEvent.change(screen.getByLabelText(/Descrição do Item/i), { target: { value: 'Filtro de Óleo' } })
+    fireEvent.submit(screen.getByRole('button', { name: 'Adicionar Item' }).closest('form')!)
+
+    expect(await screen.findByText('Falha ao adicionar item: FK constraint failed')).toBeTruthy()
+    expect(insertMock).toHaveBeenCalledWith(expect.objectContaining({
+      tenant_id: 'tenant-1',
+      service_order_id: 'order-1',
+      product_id: null,
+      description: 'Filtro de Óleo',
+    }))
+  })
 })

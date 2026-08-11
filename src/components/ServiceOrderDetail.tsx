@@ -130,9 +130,11 @@ export function ServiceOrderDetail({ activeTenant }: { activeTenant: ActiveTenan
   async function handleAddItem(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!order) return
+    setError(null)
 
     const form = new FormData(event.currentTarget)
-    const productId = String(form.get('productId')).trim() || null
+    const productIdRaw = String(form.get('productId') || '').trim()
+    const productId = productIdRaw && productIdRaw !== '' ? productIdRaw : null
     const kind = (form.get('kind') as ServiceOrderItemKind) || 'part'
     const description = String(form.get('description')).trim()
     const quantity = Number(form.get('quantity')) || 1
@@ -154,8 +156,13 @@ export function ServiceOrderDetail({ activeTenant }: { activeTenant: ActiveTenan
       .select()
       .single()
 
-    if (insertError || !newItem) {
-      setError('Falha ao adicionar item à OS.')
+    if (insertError) {
+      setError('Falha ao adicionar item: ' + (insertError.message || 'Erro desconhecido'))
+      return
+    }
+
+    if (!newItem) {
+      setError('Falha ao adicionar item: Erro desconhecido')
       return
     }
 

@@ -8,21 +8,13 @@ vi.mock('../lib/supabase', () => ({
     from: vi.fn(() => ({
       select: vi.fn(() => ({
         eq: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            neq: vi.fn(() => ({
-              order: vi.fn(() => ({
-                gte: vi.fn(() => ({
-                  lte: vi.fn().mockResolvedValue({ data: [], error: null }),
-                })),
-                lte: vi.fn().mockResolvedValue({ data: [], error: null }),
-              })),
-            })),
-          })),
+          eq: vi.fn().mockResolvedValue({ data: [], error: null }),
           neq: vi.fn(() => ({
             order: vi.fn().mockResolvedValue({ data: [], error: null }),
           })),
           order: vi.fn().mockResolvedValue({ data: [], error: null }),
         })),
+        order: vi.fn().mockResolvedValue({ data: [], error: null }),
       })),
       update: vi.fn(() => ({
         eq: vi.fn(() => ({
