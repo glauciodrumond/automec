@@ -46,3 +46,13 @@ COMMAND RESULTS:
 - `npm.cmd audit --audit-level=high`: passed with 0 vulnerabilities.
 
 CONCERNS: Local runtime is Node `v24.12.0`; deployments must use Node `20.19+` to satisfy the declared engine constraint and Vite 7 requirements.
+
+FIX ROUND 3
+
+STATUS: DONE
+
+CHANGES: Corrected the Node runtime range in `package.json` and `README.md` to `^20.19.0 || >=22.12.0`, matching Vite 7 support and excluding unsupported Node 21.
+
+COMMAND RESULTS: `npm.cmd test`, `npm.cmd run build`, and `npm.cmd audit --audit-level=high` passed.
+
+CONCERNS: None identified.
