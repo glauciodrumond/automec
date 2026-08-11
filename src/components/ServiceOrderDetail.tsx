@@ -1,6 +1,7 @@
 import { ArrowLeft } from 'lucide-react'
 import { useEffect, useId, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { CheckinPanel } from './CheckinPanel'
 import { supabase } from '../lib/supabase'
 import type { ActiveTenantContext } from '../lib/tenant'
 import type { Customer, ServiceOrder, ServiceOrderItem, Vehicle } from '../types/database'
@@ -59,9 +60,9 @@ export function ServiceOrderDetail({ activeTenant }: { activeTenant: ActiveTenan
     <div className="tabs" role="tablist" aria-label="Detalhes da ordem">{tabs.map((item) => <button type="button" role="tab" key={item.id} id={`${tabId}-${item.id}`} aria-selected={tab === item.id} aria-controls={`${tabId}-panel`} className={tab === item.id ? 'tab-button active' : 'tab-button'} onClick={() => setTab(item.id)}>{item.label}</button>)}</div>
     <section id={`${tabId}-panel`} role="tabpanel" aria-labelledby={`${tabId}-${tab}`} className="tab-panel">
       {tab === 'summary' && <div className="detail-copy"><h2>Resumo</h2><p><strong>Reclamacao:</strong> {order.complaint || 'Nao informada.'}</p><p><strong>Veiculo:</strong> {[vehicle?.brand, vehicle?.model].filter(Boolean).join(' ') || 'Dados nao informados.'}</p></div>}
-      {tab === 'checkin' && <p className="empty-state">O painel de check-in sera conectado aqui no proximo passo.</p>}
+      {tab === 'checkin' && <CheckinPanel activeTenant={activeTenant} serviceOrderId={order.id} mode="checkin" />}
       {tab === 'items' && (items.length ? <div className="data-table items-table"><div className="data-row data-head"><span>Tipo</span><span>Descricao</span><span>Quantidade</span><span>Valor unitario</span></div>{items.map((item) => <div className="data-row" key={item.id}><span>{item.kind}</span><strong>{item.description}</strong><span>{item.quantity}</span><span>{formatCurrency(item.unit_price)}</span></div>)}</div> : <p className="empty-state">Nenhum item cadastrado nesta OS.</p>)}
-      {tab === 'photos' && <p className="empty-state">As fotos do check-in aparecerao aqui no proximo passo.</p>}
+      {tab === 'photos' && <CheckinPanel activeTenant={activeTenant} serviceOrderId={order.id} mode="photos" />}
     </section>
   </section>
 }
