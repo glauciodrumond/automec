@@ -42,6 +42,13 @@ select count(*) = 8
   and bool_and(actual.definition like 'FOREIGN KEY (tenant_id, %') as tenant_scoped_foreign_keys_exist
 from expected left join actual using (conname);
 
+select confdeltype = 'n'
+  and pg_get_constraintdef(oid) like '%ON DELETE SET NULL (checkin_item_id)%'
+  as checkin_photo_item_delete_preserves_tenant
+from pg_constraint
+where connamespace = 'public'::regnamespace
+  and conname = 'checkin_photos_tenant_checkin_item_fkey';
+
 with expected(relname) as (
   values ('tenants'), ('tenant_members'), ('customers'), ('vehicles'), ('service_orders'),
     ('service_order_items'), ('checkins'), ('checkin_items'), ('checkin_photos'), ('audit_events')
@@ -54,13 +61,14 @@ select count(*) = 10 and bool_and(coalesce(actual.relrowsecurity, false)) as rls
 from expected left join actual using (relname);
 
 with expected(routine_name) as (
-  values ('is_tenant_member'), ('has_tenant_role'), ('create_tenant_with_owner')
+  values ('is_tenant_member'), ('has_tenant_role'), ('create_tenant_with_owner'),
+    ('prevent_actor_field_update')
 ), actual as (
   select routine_name
   from information_schema.routines
   where routine_schema = 'public'
 )
-select count(*) = 3 and count(actual.routine_name) = count(expected.routine_name) as required_routines_exist
+select count(*) = 4 and count(actual.routine_name) = count(expected.routine_name) as required_routines_exist
 from expected left join actual using (routine_name);
 
 with expected(policyname, tablename) as (
@@ -86,6 +94,29 @@ select count(*) = 33
   and not exists (select policyname, tablename from actual except select policyname, tablename from expected) as public_policies_match_expected
 from expected left join actual using (policyname, tablename);
 
+with expected(trigger_name, table_name, actor_field) as (
+  values
+    ('service_orders_created_by_immutable', 'service_orders', 'created_by'),
+    ('checkins_created_by_immutable', 'checkins', 'created_by'),
+    ('checkin_photos_uploaded_by_immutable', 'checkin_photos', 'uploaded_by'),
+    ('audit_events_actor_id_immutable', 'audit_events', 'actor_id')
+), actual as (
+  select t.tgname, c.relname, pg_get_triggerdef(t.oid) as definition
+  from pg_trigger t
+  join pg_class c on c.oid = t.tgrelid
+  where c.relnamespace = 'public'::regnamespace
+    and not t.tgisinternal
+)
+select count(*) = 4
+  and count(actual.tgname) = count(expected.trigger_name)
+  and bool_and(
+    actual.definition like '%BEFORE UPDATE%'
+    and actual.definition like '%prevent_actor_field_update%'
+    and actual.definition like '%' || quote_literal(expected.actor_field) || '%'
+  ) as actor_fields_are_immutable
+from expected
+left join actual on actual.tgname = expected.trigger_name and actual.relname = expected.table_name;
+
 with policies as (
   select policyname, coalesce(qual, '') as qual, coalesce(with_check, '') as with_check
   from pg_policies
@@ -99,14 +130,19 @@ with policies as (
 select count(*) = 7
   and bool_and(
     case
-      when policyname like 'service_orders_%' then with_check like '%created_by = auth.uid()%'
-      when policyname like 'checkins_%' then with_check like '%created_by = auth.uid()%'
-      when policyname like 'checkin_photos_%' then with_check like '%uploaded_by = auth.uid()%'
+      when policyname in ('service_orders_staff_insert', 'checkins_staff_insert') then with_check like '%created_by = auth.uid()%'
+      when policyname = 'checkin_photos_staff_insert' then with_check like '%uploaded_by = auth.uid()%'
+      when policyname in ('service_orders_staff_update', 'checkins_staff_update') then
+        with_check like '%has_tenant_role%'
+        and with_check not like '%created_by = auth.uid()%'
+      when policyname = 'checkin_photos_staff_update' then
+        with_check like '%has_tenant_role%'
+        and with_check not like '%uploaded_by = auth.uid()%'
       when policyname = 'audit_events_staff_insert' then lower(with_check) like '%actor_id is null%'
         and lower(with_check) like '%actor_id = auth.uid()%'
       else false
     end
-  ) as audit_actor_guards_exist
+  ) as actor_insert_guards_and_collaborative_updates_exist
 from policies;
 
 with policies as (

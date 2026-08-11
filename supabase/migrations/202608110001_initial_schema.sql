@@ -136,7 +136,7 @@ create table public.checkin_photos (
     references public.checkins(tenant_id, id) on delete cascade,
   constraint checkin_photos_tenant_checkin_item_fkey
     foreign key (tenant_id, checkin_item_id)
-    references public.checkin_items(tenant_id, id) on delete set null
+    references public.checkin_items(tenant_id, id) on delete set null (checkin_item_id)
 );
 
 create table public.audit_events (
@@ -232,6 +232,36 @@ $$;
 revoke execute on function public.create_tenant_with_owner(text, text, text) from public;
 grant execute on function public.create_tenant_with_owner(text, text, text) to authenticated;
 
+create or replace function public.prevent_actor_field_update()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+begin
+  if to_jsonb(new) ->> tg_argv[0] is distinct from to_jsonb(old) ->> tg_argv[0] then
+    raise exception '% is immutable', tg_argv[0];
+  end if;
+
+  return new;
+end;
+$$;
+
+create trigger service_orders_created_by_immutable
+before update on public.service_orders
+for each row execute function public.prevent_actor_field_update('created_by');
+
+create trigger checkins_created_by_immutable
+before update on public.checkins
+for each row execute function public.prevent_actor_field_update('created_by');
+
+create trigger checkin_photos_uploaded_by_immutable
+before update on public.checkin_photos
+for each row execute function public.prevent_actor_field_update('uploaded_by');
+
+create trigger audit_events_actor_id_immutable
+before update on public.audit_events
+for each row execute function public.prevent_actor_field_update('actor_id');
+
 alter table public.tenants enable row level security;
 alter table public.tenant_members enable row level security;
 alter table public.customers enable row level security;
@@ -282,10 +312,7 @@ for insert with check (
 );
 create policy service_orders_staff_update on public.service_orders
 for update using (public.has_tenant_role(tenant_id, array['owner', 'admin', 'technician']))
-with check (
-  public.has_tenant_role(tenant_id, array['owner', 'admin', 'technician'])
-  and created_by = auth.uid()
-);
+with check (public.has_tenant_role(tenant_id, array['owner', 'admin', 'technician']));
 create policy service_orders_admin_delete on public.service_orders
 for delete using (public.has_tenant_role(tenant_id, array['owner', 'admin']));
 
@@ -308,10 +335,7 @@ for insert with check (
 );
 create policy checkins_staff_update on public.checkins
 for update using (public.has_tenant_role(tenant_id, array['owner', 'admin', 'technician']))
-with check (
-  public.has_tenant_role(tenant_id, array['owner', 'admin', 'technician'])
-  and created_by = auth.uid()
-);
+with check (public.has_tenant_role(tenant_id, array['owner', 'admin', 'technician']));
 create policy checkins_admin_delete on public.checkins
 for delete using (public.has_tenant_role(tenant_id, array['owner', 'admin']));
 
@@ -334,10 +358,7 @@ for insert with check (
 );
 create policy checkin_photos_staff_update on public.checkin_photos
 for update using (public.has_tenant_role(tenant_id, array['owner', 'admin', 'technician']))
-with check (
-  public.has_tenant_role(tenant_id, array['owner', 'admin', 'technician'])
-  and uploaded_by = auth.uid()
-);
+with check (public.has_tenant_role(tenant_id, array['owner', 'admin', 'technician']));
 create policy checkin_photos_admin_delete on public.checkin_photos
 for delete using (public.has_tenant_role(tenant_id, array['owner', 'admin']));
 
