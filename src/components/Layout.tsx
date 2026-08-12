@@ -1,6 +1,8 @@
-import { LayoutDashboard, ClipboardList, Package, Users, DollarSign, LogOut, Wrench, ChevronRight, UserCheck, BarChart3, Calendar, KanbanSquare, Award, Kanban } from 'lucide-react'
+import { LayoutDashboard, ClipboardList, Package, Users, DollarSign, LogOut, Wrench, ChevronRight, UserCheck, Calendar, KanbanSquare, Award, Search } from 'lucide-react'
+import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { UniversalSearch } from './UniversalSearch'
 import type { ActiveTenantContext } from '../lib/tenant'
 
 interface LayoutProps {
@@ -11,20 +13,22 @@ interface LayoutProps {
 const roleLabels = {
   owner: 'Proprietário',
   admin: 'Administrador',
-  technician: 'Técnico',
+  technician: 'Técnico / Mecânico',
 }
 
 export function Layout({ activeTenant, children }: LayoutProps) {
+  const [showSearch, setShowSearch] = useState(false)
+
   return (
     <div className="enterprise-shell">
       <aside className="app-sidebar">
         <div className="sidebar-brand">
-          <div className="brand-icon">
+          <div className="brand-icon" style={{ background: '#2563eb' }}>
             <Wrench size={22} />
           </div>
           <div className="brand-text">
-            <strong>Automec</strong>
-            <small>SaaS Oficina</small>
+            <strong style={{ fontFamily: 'Outfit', fontSize: '1.3rem', letterSpacing: '0.02em' }}>AUTOOS</strong>
+            <small style={{ color: '#94a3b8', fontSize: '0.72rem' }}>Gestão Automotiva</small>
           </div>
         </div>
 
@@ -52,9 +56,9 @@ export function Layout({ activeTenant, children }: LayoutProps) {
             <ChevronRight size={14} className="arrow-icon" />
           </NavLink>
 
-          <NavLink to="/kanban" className={({ isActive }) => (isActive ? 'sidebar-link active' : 'sidebar-link')}>
-            <Kanban size={18} />
-            <span>Kanban</span>
+          <NavLink to="/mechanic" className={({ isActive }) => (isActive ? 'sidebar-link active' : 'sidebar-link')}>
+            <Wrench size={18} />
+            <span>Painel do Mecânico</span>
             <ChevronRight size={14} className="arrow-icon" />
           </NavLink>
 
@@ -111,12 +115,34 @@ export function Layout({ activeTenant, children }: LayoutProps) {
       </aside>
 
       <div className="main-workspace">
-        <header className="workspace-header">
+        <header className="workspace-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div className="header-greeting">
-            <h2>{activeTenant.tenantName}</h2>
+            <h2 style={{ fontFamily: 'Outfit', fontSize: '1.2rem', color: '#0f172a' }}>{activeTenant.tenantName}</h2>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            {/* Global Search Button */}
+            <button
+              type="button"
+              className="secondary-btn"
+              onClick={() => setShowSearch(true)}
+              style={{ background: '#fff', border: '1px solid #cbd5e1', color: '#475569', fontSize: '0.88rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderRadius: 8 }}
+            >
+              <Search size={16} style={{ color: '#2563eb' }} />
+              <span>Busca Universal</span>
+              <kbd style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: 4, padding: '2px 6px', fontSize: '0.72rem', color: '#64748b' }}>Ctrl+K</kbd>
+            </button>
           </div>
         </header>
+
         <main className="workspace-content">{children}</main>
+
+        {/* Global Search Modal */}
+        <UniversalSearch
+          activeTenant={activeTenant}
+          isOpen={showSearch}
+          onClose={() => setShowSearch(false)}
+        />
       </div>
     </div>
   )

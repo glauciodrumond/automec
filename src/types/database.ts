@@ -504,3 +504,62 @@ export interface ServiceOrderApprovalInsert {
   customer_name?: string | null
   approved_at?: string
 }
+
+export type WorkTaskTimingStatus = 'running' | 'paused' | 'completed'
+
+export interface WorkTaskTimingRow {
+  id: string
+  tenant_id: string
+  service_order_id: string
+  service_order_item_id: string
+  mechanic_id: string
+  status: WorkTaskTimingStatus
+  started_at: string
+  paused_at: string | null
+  ended_at: string | null
+  duration_seconds: number
+  created_at: string
+}
+export type WorkTaskTiming = WorkTaskTimingRow
+
+export interface WorkTaskTimingInsert {
+  id?: string
+  tenant_id: string
+  service_order_id: string
+  service_order_item_id: string
+  mechanic_id: string
+  status?: WorkTaskTimingStatus
+  started_at?: string
+  paused_at?: string | null
+  ended_at?: string | null
+  duration_seconds?: number
+  created_at?: string
+}
+
+export type InventoryMovementKind = 'in' | 'out' | 'reserved' | 'adjustment'
+
+export interface InventoryMovementRow {
+  id: string
+  tenant_id: string
+  product_id: string
+  service_order_id: string | null
+  kind: InventoryMovementKind
+  quantity: number
+  unit_cost: number | null
+  notes: string | null
+  created_at: string
+}
+export type InventoryMovement = InventoryMovementRow
+
+export interface InventoryMovementInsert {
+  id?: string
+  tenant_id: string
+  product_id: string
+  service_order_id?: string | null
+  kind: InventoryMovementKind
+  quantity: number
+  unit_cost?: number | null
+  notes?: string | null
+  created_at?: string
+}
+

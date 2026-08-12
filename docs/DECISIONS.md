@@ -2,11 +2,11 @@
 
 ---
 
-## ADR-001: Adoção da Marca e Visão AUTOOS
+## ADR-001: Rebranding Oficial para AUTOOS
 - **Data:** 11/08/2026
-- **Contexto:** Evolução do protótipo inicial (Automec) para uma plataforma SaaS comercial completa de Gestão Automotiva ("Sistema Operacional da Oficina").
-- **Decisão:** Rebranding conceitual e arquitetural para **AUTOOS**, mantendo retrocompatibilidade com o banco de dados Supabase e migrando incrementalmente o sistema.
-- **Impacto:** Foco em multi-tenancy estrito, UX de alta velocidade, automação de processos e copiloto assistivo por IA.
+- **Contexto:** Posicionamento como "O Sistema Operacional da Oficina" (AUTOOS).
+- **Decisão:** Rebranding visual e conceitual na interface do sistema para **AUTOOS — Plataforma Inteligente de Gestão Automotiva**.
+- **Impacto:** Atualização do logo, títulos, cabeçalho, sidebar e marca d'água no portal do cliente e impressos.
 
 ---
 
@@ -18,7 +18,23 @@
 
 ---
 
-## ADR-003: Estratégia de Desenvolvimento Incremental (TDD + Subagents)
+## ADR-003: Apontamento de Horas por Item/Serviço da OS
+- **Data:** 11/08/2026
+- **Contexto:** Mensuração da produtividade e eficiência real do mecânico.
+- **Decisão:** O temporizador (Play / Pause / Concluir) do mecânico é acionado **por item de serviço individual** da OS na interface mobile `/mechanic`.
+- **Impacto:** Registro detalhado na nova tabela `work_task_timings` com hora inicial, final, pausas, duração em minutos e mecânico responsável.
+
+---
+
+## ADR-004: Estratégia de Mensageria WhatsApp (Camada de Abstração + WA.ME)
+- **Data:** 11/08/2026
+- **Contexto:** Envio de orçamentos, confirmações de agendamento e notificações via WhatsApp sem custos fixos iniciais.
+- **Decisão:** Utilizar envio direto via `wa.me` no MVP, encapsulado em uma camada de abstração (`src/services/messaging/whatsappService.ts`) para permitir conexão com provedores automáticos no futuro.
+- **Impacto:** Custos zerados no MVP e suporte a envio rápido com 1 clique pelo navegador.
+
+---
+
+## ADR-005: Estratégia de Desenvolvimento Incremental (TDD + Subagents)
 - **Data:** 11/08/2026
 - **Contexto:** Evitar overengineering, regressões e código instável em um SaaS de grande porte.
 - **Decisão:** Adoção rigorosa de metodologias por planos de execução (`writing-plans`), validações via Vitest (`npm test`) e execução automatizada via subagentes (`subagent-driven-development`).

@@ -167,8 +167,8 @@ export function AuthGate({ children }: AuthGateProps) {
     return (
       <main className="auth-page">
         <section className="auth-panel" aria-labelledby="auth-title">
-          <p className="eyebrow">Automec</p>
-          <h1 id="auth-title">Acesso da oficina</h1>
+          <p className="eyebrow">AUTOOS</p>
+          <h1 id="auth-title">Gestão Automotiva Inteligente</h1>
           <form className="stack-form" onSubmit={submitCredentials}>
             <label>E-mail<input type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required /></label>
             <label>Senha<input type="password" autoComplete={mode === 'signIn' ? 'current-password' : 'new-password'} minLength={6} value={password} onChange={(event) => setPassword(event.target.value)} required /></label>
