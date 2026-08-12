@@ -168,10 +168,10 @@ export function MechanicPortal({ activeTenant }: { activeTenant: ActiveTenantCon
   if (error) return <p className="error-message">{error}</p>
 
   return (
-    <section className="screen-section full-widescreen" style={{ maxWidth: 768, margin: '0 auto' }}>
+    <section className="screen-section full-widescreen">
       <div className="screen-heading">
         <div>
-          <p className="eyebrow">Painel do Mecânico (Mobile-First)</p>
+          <p className="eyebrow">Painel do Mecânico & Operação</p>
           <h1 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Wrench size={26} style={{ color: '#2563eb' }} />
             Minhas Tarefas & Apontamento
@@ -182,7 +182,7 @@ export function MechanicPortal({ activeTenant }: { activeTenant: ActiveTenantCon
       {tasks.length === 0 ? (
         <p className="empty-state">Nenhuma tarefa de serviço pendente para apontamento no momento.</p>
       ) : (
-        <div className="mechanic-tasks-list" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div className="mechanic-tasks-list" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 16 }}>
           {tasks.map((task) => {
             const isRunning = task.timing?.status === 'running'
             const isPaused = task.timing?.status === 'paused'

@@ -1,4 +1,4 @@
-import { LayoutDashboard, ClipboardList, Package, Users, DollarSign, LogOut, Wrench, ChevronRight, UserCheck, Calendar, KanbanSquare, Award, Search } from 'lucide-react'
+import { LayoutDashboard, ClipboardList, Package, Users, DollarSign, LogOut, Wrench, ChevronRight, UserCheck, Calendar, KanbanSquare, Award, Search, Layers, Truck, Bot } from 'lucide-react'
 import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
@@ -32,10 +32,7 @@ export function Layout({ activeTenant, children }: LayoutProps) {
           </div>
         </div>
 
-        <div className="tenant-selector-pill">
-          <span>Oficina Ativa:</span>
-          <strong>{activeTenant.tenantName}</strong>
-        </div>
+
 
         <nav className="sidebar-nav">
           <NavLink end to="/" className={({ isActive }) => (isActive ? 'sidebar-link active' : 'sidebar-link')}>
@@ -80,6 +77,12 @@ export function Layout({ activeTenant, children }: LayoutProps) {
             <ChevronRight size={14} className="arrow-icon" />
           </NavLink>
 
+          <NavLink to="/crm-opportunities" className={({ isActive }) => (isActive ? 'sidebar-link active' : 'sidebar-link')}>
+            <Award size={18} />
+            <span>Oportunidades & CRM</span>
+            <ChevronRight size={14} className="arrow-icon" />
+          </NavLink>
+
           <NavLink to="/financial" className={({ isActive }) => (isActive ? 'sidebar-link active' : 'sidebar-link')}>
             <DollarSign size={18} />
             <span>Financeiro & DRE</span>
@@ -95,6 +98,30 @@ export function Layout({ activeTenant, children }: LayoutProps) {
           <NavLink to="/team" className={({ isActive }) => (isActive ? 'sidebar-link active' : 'sidebar-link')}>
             <Users size={18} />
             <span>Equipe</span>
+            <ChevronRight size={14} className="arrow-icon" />
+          </NavLink>
+
+          <NavLink to="/workstations" className={({ isActive }) => (isActive ? 'sidebar-link active' : 'sidebar-link')}>
+            <Layers size={18} />
+            <span>Elevadores & Boxes</span>
+            <ChevronRight size={14} className="arrow-icon" />
+          </NavLink>
+
+          <NavLink to="/checklist-config" className={({ isActive }) => (isActive ? 'sidebar-link active' : 'sidebar-link')}>
+            <ClipboardList size={18} />
+            <span>Checklists</span>
+            <ChevronRight size={14} className="arrow-icon" />
+          </NavLink>
+
+          <NavLink to="/purchases" className={({ isActive }) => (isActive ? 'sidebar-link active' : 'sidebar-link')}>
+            <Truck size={18} />
+            <span>Compras & Entradas</span>
+            <ChevronRight size={14} className="arrow-icon" />
+          </NavLink>
+
+          <NavLink to="/copilot" className={({ isActive }) => (isActive ? 'sidebar-link active' : 'sidebar-link')}>
+            <Bot size={18} />
+            <span>Copiloto IA</span>
             <ChevronRight size={14} className="arrow-icon" />
           </NavLink>
         </nav>

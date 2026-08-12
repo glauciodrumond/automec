@@ -563,3 +563,126 @@ export interface InventoryMovementInsert {
   created_at?: string
 }
 
+export interface QualityCheckRow {
+  id: string
+  tenant_id: string
+  service_order_id: string
+  inspected_by: string
+  test_drive_ok: boolean
+  wheel_torque_ok: boolean
+  fluids_checked: boolean
+  dashboard_lights_clear: boolean
+  wash_cleaned: boolean
+  notes: string | null
+  created_at: string
+}
+export type QualityCheck = QualityCheckRow
+
+export interface QualityCheckInsert {
+  id?: string
+  tenant_id: string
+  service_order_id: string
+  inspected_by: string
+  test_drive_ok?: boolean
+  wheel_torque_ok?: boolean
+  fluids_checked?: boolean
+  dashboard_lights_clear?: boolean
+  wash_cleaned?: boolean
+  notes?: string | null
+  created_at?: string
+}
+
+export type WorkStationKind = 'elevator' | 'box' | 'pit'
+export type WorkStationStatus = 'available' | 'occupied' | 'maintenance'
+
+export interface WorkStationRow {
+  id: string
+  tenant_id: string
+  name: string
+  kind: WorkStationKind
+  status: WorkStationStatus
+  current_service_order_id: string | null
+  created_at: string
+}
+export type WorkStation = WorkStationRow
+
+export interface WorkStationInsert {
+  id?: string
+  tenant_id: string
+  name: string
+  kind?: WorkStationKind
+  status?: WorkStationStatus
+  current_service_order_id?: string | null
+  created_at?: string
+}
+
+export interface CustomChecklistRow {
+  id: string
+  tenant_id: string
+  category_name: string
+  item_label: string
+  sort_order: number
+  created_at: string
+}
+export type CustomChecklist = CustomChecklistRow
+
+export interface CustomChecklistInsert {
+  id?: string
+  tenant_id: string
+  category_name: string
+  item_label: string
+  sort_order?: number
+  created_at?: string
+}
+
+export interface SupplierRow {
+  id: string
+  tenant_id: string
+  name: string
+  cnpj: string | null
+  phone: string | null
+  email: string | null
+  notes: string | null
+  created_at: string
+}
+export type Supplier = SupplierRow
+
+export interface SupplierInsert {
+  id?: string
+  tenant_id: string
+  name: string
+  cnpj?: string | null
+  phone?: string | null
+  email?: string | null
+  notes?: string | null
+  created_at?: string
+}
+
+export type PurchaseOrderStatus = 'draft' | 'ordered' | 'received' | 'cancelled'
+
+export interface PurchaseOrderRow {
+  id: string
+  tenant_id: string
+  supplier_id: string | null
+  status: PurchaseOrderStatus
+  total_cost: number
+  notes: string | null
+  received_at: string | null
+  created_at: string
+}
+export type PurchaseOrder = PurchaseOrderRow
+
+export interface PurchaseOrderInsert {
+  id?: string
+  tenant_id: string
+  supplier_id?: string | null
+  status?: PurchaseOrderStatus
+  total_cost?: number
+  notes?: string | null
+  received_at?: string | null
+  created_at?: string
+}
+
+
+
+

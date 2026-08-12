@@ -1,6 +1,9 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { AIWorkshopCopilot } from './components/AIWorkshopCopilot'
 import { AuthGate } from './components/AuthGate'
+import { ChecklistConfig } from './components/ChecklistConfig'
 import { CommissionsPanel } from './components/CommissionsPanel'
+import { CRMOportunidades } from './components/CRMOportunidades'
 import { CustomerCRM } from './components/CustomerCRM'
 import { CustomerPortal } from './components/CustomerPortal'
 import { Dashboard } from './components/Dashboard'
@@ -10,11 +13,13 @@ import { Layout } from './components/Layout'
 import { MechanicPortal } from './components/MechanicPortal'
 import { NewServiceOrder } from './components/NewServiceOrder'
 import { ProductsList } from './components/ProductsList'
+import { PurchaseOrders } from './components/PurchaseOrders'
 import { ServiceOrderDetail } from './components/ServiceOrderDetail'
 import { ServiceOrderList } from './components/ServiceOrderList'
 import { ServiceSchedule } from './components/ServiceSchedule'
 import { TeamMembers } from './components/TeamMembers'
 import { VehiclePassport } from './components/VehiclePassport'
+import { WorkStationPanel } from './components/WorkStationPanel'
 
 function App() {
   return (
@@ -41,9 +46,14 @@ function App() {
                     <Route path="/schedule" element={<ServiceSchedule activeTenant={activeTenant} />} />
                     <Route path="/products" element={<ProductsList activeTenant={activeTenant} />} />
                     <Route path="/customers" element={<CustomerCRM activeTenant={activeTenant} />} />
+                    <Route path="/crm-opportunities" element={<CRMOportunidades activeTenant={activeTenant} />} />
                     <Route path="/financial" element={<FinancialDRE activeTenant={activeTenant} />} />
                     <Route path="/commissions" element={<CommissionsPanel activeTenant={activeTenant} />} />
                     <Route path="/team" element={<TeamMembers activeTenant={activeTenant} />} />
+                    <Route path="/workstations" element={<WorkStationPanel activeTenant={activeTenant} />} />
+                    <Route path="/checklist-config" element={<ChecklistConfig activeTenant={activeTenant} />} />
+                    <Route path="/purchases" element={<PurchaseOrders activeTenant={activeTenant} />} />
+                    <Route path="/copilot" element={<AIWorkshopCopilot activeTenant={activeTenant} />} />
                   </Routes>
                 </Layout>
               )}

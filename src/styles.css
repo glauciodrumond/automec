@@ -1,7 +1,12 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
 
 :root {
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Helvetica Neue", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-weight: 400;
+  letter-spacing: -0.011em;
   color: #0f172a;
   background: #f8fafc;
 }
@@ -12,9 +17,16 @@ body {
 }
 
 * { box-sizing: border-box; }
-h1, h2, h3, h4 { font-family: 'Outfit', sans-serif; }
+h1, h2, h3, h4 { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", sans-serif; font-weight: 500; letter-spacing: -0.025em; }
+code, kbd, pre, .kanban-card-number, .mono-font { font-family: 'JetBrains Mono', 'Fira Code', monospace; }
 button, input, select, textarea { font: inherit; }
 button { cursor: pointer; }
+
+/* Global Text & Box Overflow Containment */
+p, h1, h2, h3, h4, h5, h6, span, strong, small, td, th, label, div {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
 
 .auth-page { display: grid; min-height: 100vh; place-items: center; padding: 24px; background: #f1f5f9; }
 .auth-panel { width: min(100%, 420px); border: 1px solid #cbd5e1; border-radius: 12px; background: #fff; padding: 32px; box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.1); }

@@ -15,6 +15,10 @@ import type {
   InventoryMovement,
   InventoryMovementInsert,
   Product,
+  WorkStation,
+  CustomChecklist,
+  Supplier,
+  PurchaseOrder,
 } from '../types/database'
 
 export interface GlobalSearchResult {
@@ -496,3 +500,326 @@ export async function recordInventoryMovement(
   if (error) throw error
   return data
 }
+
+export interface CRMOpportunitiesData {
+  pendingQuotesTotal: number
+  pendingQuotes: Array<{
+    id: string
+    code: number
+    customer_name: string
+    customer_phone: string | null
+    plate: string
+    total_amount: number | null
+    created_at: string
+  }>
+  inactiveClientsTotal: number
+  inactiveClients: Array<{
+    id: string
+    name: string
+    phone: string | null
+    last_order_at: string | null
+  }>
+}
+
+export async function saveQualityCheck(
+  tenantId: string,
+  serviceOrderId: string,
+  inspectedBy: string,
+  data: {
+    testDrive: boolean
+    wheelTorque: boolean
+    fluids: boolean
+    dashboardLights: boolean
+    washCleaned: boolean
+    notes?: string
+  }
+): Promise<{ success: boolean; error?: string }> {
+  const { error } = await supabase.from('quality_checks').upsert(
+    {
+      tenant_id: tenantId,
+      service_order_id: serviceOrderId,
+      inspected_by: inspectedBy,
+      test_drive_ok: data.testDrive,
+      wheel_torque_ok: data.wheelTorque,
+      fluids_checked: data.fluids,
+      dashboard_lights_clear: data.dashboardLights,
+      wash_cleaned: data.washCleaned,
+      notes: data.notes || null,
+    },
+    { onConflict: 'tenant_id, service_order_id' }
+  )
+
+  if (error) return { success: false, error: error.message }
+  return { success: true }
+}
+
+export async function getCRMOpportunities(tenantId: string): Promise<CRMOpportunitiesData> {
+  const [{ data: pendingOrders }, { data: customers }] = await Promise.all([
+    supabase
+      .from('service_orders')
+      .select('id, code, created_at, total_amount, customers(name, phone), vehicles(plate)')
+      .eq('tenant_id', tenantId)
+      .eq('order_type', 'budget')
+      .neq('status', 'cancelled'),
+    supabase
+      .from('customers')
+      .select('id, name, phone, updated_at')
+      .eq('tenant_id', tenantId),
+  ])
+
+  const pendingQuotes = (pendingOrders || []).map((ord: any) => ({
+    id: ord.id,
+    code: ord.code,
+    customer_name: ord.customers?.name || 'Cliente',
+    customer_phone: ord.customers?.phone || null,
+    plate: ord.vehicles?.plate || '—',
+    total_amount: ord.total_amount || 0,
+    created_at: ord.created_at,
+  }))
+
+  const pendingQuotesTotal = pendingQuotes.reduce((acc, curr) => acc + (curr.total_amount || 0), 0)
+
+  const inactiveClients = (customers || []).map((c: any) => ({
+    id: c.id,
+    name: c.name,
+    phone: c.phone || null,
+    last_order_at: c.updated_at || null,
+  }))
+
+  const inactiveClientsTotal = inactiveClients.length * 450 // Estimated average service
+
+  return {
+    pendingQuotesTotal,
+    pendingQuotes,
+    inactiveClientsTotal,
+    inactiveClients,
+  }
+}
+
+export async function reserveStockForApprovedOrder(tenantId: string, serviceOrderId: string): Promise<void> {
+  const { data: items } = await supabase
+    .from('service_order_items')
+    .select('product_id, quantity')
+    .eq('tenant_id', tenantId)
+    .eq('service_order_id', serviceOrderId)
+    .eq('kind', 'part')
+
+  if (!items || items.length === 0) return
+
+  for (const item of items) {
+    if (item.product_id) {
+      await recordInventoryMovement(tenantId, {
+        tenant_id: tenantId,
+        product_id: item.product_id,
+        service_order_id: serviceOrderId,
+        kind: 'reserved',
+        quantity: item.quantity,
+        notes: `Reserva para OS aprovada`,
+      })
+    }
+  }
+}
+
+export async function getProductKardex(tenantId: string, productId: string): Promise<InventoryMovement[]> {
+  const { data, error } = await supabase
+    .from('inventory_movements')
+    .select('*')
+    .eq('tenant_id', tenantId)
+    .eq('product_id', productId)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return (data as InventoryMovement[]) || []
+}
+
+export async function getWorkstations(tenantId: string): Promise<WorkStation[]> {
+  const { data, error } = await supabase
+    .from('work_stations')
+    .select('*')
+    .eq('tenant_id', tenantId)
+    .order('name')
+
+  if (error) throw error
+  return (data as WorkStation[]) || []
+}
+
+export async function createWorkstation(
+  tenantId: string,
+  name: string,
+  kind: 'elevator' | 'box' | 'pit' = 'elevator'
+): Promise<WorkStation> {
+  const { data, error } = await supabase
+    .from('work_stations')
+    .insert({
+      tenant_id: tenantId,
+      name,
+      kind,
+      status: 'available',
+    })
+    .select()
+    .single()
+
+  if (error) throw error
+  return data as WorkStation
+}
+
+export async function assignOrderToWorkstation(
+  tenantId: string,
+  serviceOrderId: string,
+  workstationId: string
+): Promise<void> {
+  await Promise.all([
+    supabase
+      .from('work_stations')
+      .update({ status: 'occupied', current_service_order_id: serviceOrderId })
+      .eq('tenant_id', tenantId)
+      .eq('id', workstationId),
+    supabase
+      .from('service_orders')
+      .update({ work_station_id: workstationId })
+      .eq('tenant_id', tenantId)
+      .eq('id', serviceOrderId),
+  ])
+}
+
+export async function releaseWorkstation(tenantId: string, workstationId: string): Promise<void> {
+  const { data: ws } = await supabase
+    .from('work_stations')
+    .select('current_service_order_id')
+    .eq('tenant_id', tenantId)
+    .eq('id', workstationId)
+    .maybeSingle()
+
+  if (ws?.current_service_order_id) {
+    await supabase
+      .from('service_orders')
+      .update({ work_station_id: null })
+      .eq('tenant_id', tenantId)
+      .eq('id', ws.current_service_order_id)
+  }
+
+  await supabase
+    .from('work_stations')
+    .update({ status: 'available', current_service_order_id: null })
+    .eq('tenant_id', tenantId)
+    .eq('id', workstationId)
+}
+
+export async function getCustomChecklists(tenantId: string): Promise<CustomChecklist[]> {
+  const { data, error } = await supabase
+    .from('custom_checklists')
+    .select('*')
+    .eq('tenant_id', tenantId)
+    .order('category_name')
+
+  if (error) throw error
+  return (data as CustomChecklist[]) || []
+}
+
+export async function addCustomChecklistItem(
+  tenantId: string,
+  categoryName: string,
+  itemLabel: string
+): Promise<CustomChecklist> {
+  const { data, error } = await supabase
+    .from('custom_checklists')
+    .insert({
+      tenant_id: tenantId,
+      category_name: categoryName,
+      item_label: itemLabel,
+    })
+    .select()
+    .single()
+
+  if (error) throw error
+  return data as CustomChecklist
+}
+
+export async function getSuppliers(tenantId: string): Promise<Supplier[]> {
+  const { data, error } = await supabase
+    .from('suppliers')
+    .select('*')
+    .eq('tenant_id', tenantId)
+    .order('name')
+
+  if (error) throw error
+  return (data as Supplier[]) || []
+}
+
+export async function createSupplier(
+  tenantId: string,
+  supplier: { name: string; cnpj?: string; phone?: string; email?: string }
+): Promise<Supplier> {
+  const { data, error } = await supabase
+    .from('suppliers')
+    .insert({
+      tenant_id: tenantId,
+      name: supplier.name,
+      cnpj: supplier.cnpj || null,
+      phone: supplier.phone || null,
+      email: supplier.email || null,
+    })
+    .select()
+    .single()
+
+  if (error) throw error
+  return data as Supplier
+}
+
+export async function getPurchaseOrders(tenantId: string): Promise<PurchaseOrder[]> {
+  const { data, error } = await supabase
+    .from('purchase_orders')
+    .select('*')
+    .eq('tenant_id', tenantId)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return (data as PurchaseOrder[]) || []
+}
+
+export async function receivePurchaseOrder(tenantId: string, purchaseOrderId: string): Promise<void> {
+  const { data: items } = await supabase
+    .from('purchase_order_items')
+    .select('product_id, quantity, unit_cost')
+    .eq('tenant_id', tenantId)
+    .eq('purchase_order_id', purchaseOrderId)
+
+  if (items && items.length > 0) {
+    for (const item of items) {
+      // Record Kardex movement
+      await recordInventoryMovement(tenantId, {
+        tenant_id: tenantId,
+        product_id: item.product_id,
+        kind: 'in',
+        quantity: item.quantity,
+        unit_cost: item.unit_cost,
+        notes: 'Entrada por Pedido de Compra',
+      })
+
+      // Increment product stock
+      const { data: prod } = await supabase
+        .from('products')
+        .select('stock_current')
+        .eq('tenant_id', tenantId)
+        .eq('id', item.product_id)
+        .single()
+
+      if (prod) {
+        await supabase
+          .from('products')
+          .update({ stock_current: (prod.stock_current || 0) + item.quantity })
+          .eq('tenant_id', tenantId)
+          .eq('id', item.product_id)
+      }
+    }
+  }
+
+  await supabase
+    .from('purchase_orders')
+    .update({ status: 'received', received_at: new Date().toISOString() })
+    .eq('tenant_id', tenantId)
+    .eq('id', purchaseOrderId)
+}
+
+
+
